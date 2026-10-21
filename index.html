@@ -977,7 +977,9 @@
     <script>
         (function() {
             // ================= 共享数据配置 =================
-            const REMOTE_SYNC_URL = '';
+            // 远程同步地址：如果接入 JSONBin/Firebase，把写接口地址填到这里
+            const REMOTE_SYNC_URL = ''; // 例如 'https://api.jsonbin.io/v3/b/你的BIN_ID'
+            // 共享数据文件（放在仓库根目录，与 index.html 同级）
             const SHARED_DATA_FILE = 'data.json';
 
             // ================= 文本链接转换工具 =================
@@ -989,6 +991,7 @@
             }
 
             // ================= 共享数据加载与导出 =================
+            // 把所有 amber_* 键收集成一个对象
             function collectAllData() {
                 const out = {};
                 Object.keys(localStorage).forEach(k => {
@@ -997,21 +1000,33 @@
                 return out;
             }
 
-            async function loadSharedData() {
+            // 从 data.json 加载共享数据
+            // forceOverwrite = true 时，用共享数据覆盖本地（游客打开时使用）
+            // forceOverwrite = false 时，仅当本地没有对应键时才写入（密钥人本地优先）
+            async function loadSharedData(forceOverwrite = false) {
                 try {
                     const resp = await fetch(SHARED_DATA_FILE + '?t=' + Date.now(), { cache: 'no-store' });
-                    if (!resp.ok) return;
+                    if (!resp.ok) return false;
                     const data = await resp.json();
+                    let changed = false;
                     Object.entries(data).forEach(([k, v]) => {
-                        if (v !== null && v !== undefined && localStorage.getItem(k) === null) {
+                        if (v === null || v === undefined) return;
+                        if (forceOverwrite) {
                             localStorage.setItem(k, v);
+                            changed = true;
+                        } else if (localStorage.getItem(k) === null) {
+                            localStorage.setItem(k, v);
+                            changed = true;
                         }
                     });
+                    return changed;
                 } catch (e) {
                     console.warn('共享数据加载失败（可能未部署或 file:// 打开）', e);
+                    return false;
                 }
             }
 
+            // 导出为 data.json 下载（控制台调用 exportSharedData()）
             window.exportSharedData = function() {
                 const data = collectAllData();
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1022,6 +1037,7 @@
                 console.log('已导出 data.json，请提交到仓库根目录覆盖旧文件');
             };
 
+            // 远程同步（可选，默认关闭）
             async function saveRemoteData() {
                 if (!REMOTE_SYNC_URL) return;
                 try {
@@ -1036,9 +1052,21 @@
             }
             window.saveRemoteData = saveRemoteData;
 
+            // 统一保存后触发远程同步（如需）
+            // 同时，如果当前是密钥人编辑模式，提示用户导出 data.json
+            let hasEditedInSession = false;
             function afterSave() {
+                hasEditedInSession = true;
                 saveRemoteData();
             }
+
+            // 页面关闭前提示导出（仅在编辑过且未导出时）
+            window.addEventListener('beforeunload', function(e) {
+                if (hasEditedInSession && !window._hasExported) {
+                    // 不弹出浏览器原生确认（体验差），仅在控制台提示
+                    console.log('%c💡 提示：您编辑过内容。若要让游客看到最新内容，请在控制台执行 exportSharedData() 导出 data.json 并上传到仓库根目录。', 'color:#6b9bd2;font-weight:bold;');
+                }
+            });
 
             // ================= 音乐 =================
             const bgMusic = document.getElementById('bgMusic');
@@ -1264,7 +1292,7 @@
             let currentImageIndex = -1;
             let currentEditingPostId = null;
             let currentEditingIndex = null;
-            const SECRET_KEY = 'Baihe';  // 修改密钥
+            const SECRET_KEY = 'Baihe';
 
             function formatTimeAgo(timestamp) {
                 const diff = Date.now() - timestamp;
@@ -1867,7 +1895,6 @@
             function setMode(mode) {
                 if (mode === 'edit') {
                     body.classList.add('edit-mode');
-                    // 确保所有需要编辑的元素都启用 contenteditable
                     document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'true'));
                     document.querySelectorAll('.feed-text').forEach(el => el.setAttribute('contenteditable', 'true'));
                     document.querySelectorAll('.accordion-title, .accordion-desc').forEach(el => el.setAttribute('contenteditable', 'true'));
@@ -2130,11 +2157,37 @@
             });
 
             // ================= 启动 =================
+            // 关键：先判断游客/密钥人，再决定是否覆盖本地
             (async function init() {
-                await loadSharedData();
+                // 检查本地是否有“密钥人标记”（曾经成功输入过密钥）
+                const isOwner = localStorage.getItem('amber_is_owner') === '1';
+
+                // 游客模式：强制用共享数据覆盖本地，确保看到最新内容
+                // 密钥人模式：共享数据仅填补缺失项，本地编辑优先
+                if (!isOwner) {
+                    await loadSharedData(true);   // true = 强制覆盖
+                } else {
+                    await loadSharedData(false);  // false = 只填充缺失
+                }
+
                 loadSavedData();
                 setMode('preview');
             })();
+
+            // 当密钥人成功输入密钥后，标记为 owner，并提示导出
+            // 修改 pwdConfirm 的逻辑，插入 owner 标记
+            const originalPwdConfirm = document.getElementById('pwdConfirm').onclick;
+            document.getElementById('pwdConfirm').addEventListener('click', function() {
+                // 原逻辑在下面已被覆盖，这里确保 owner 标记
+                if (pwdInput.value === SECRET_KEY) {
+                    localStorage.setItem('amber_is_owner', '1');
+                }
+            });
+
+            // 为了不破坏原有事件，用下面的方式重写确认逻辑（覆盖原监听器）
+            // 移除原有监听器较麻烦，这里采用重新绑定并阻止默认？
+            // 实际上上面已经用 addEventListener 添加，会叠加执行，但 owner 标记能正确设置。
+            // 为了确保首次输入后 owner 生效，且不影响原有功能，不再重复绑定。
         })();
     </script>
 </body>
