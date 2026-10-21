@@ -976,9 +976,11 @@
 
     <script>
         (function() {
-            // ================= 共享数据配置 =================
-            const REMOTE_SYNC_URL = '';
-            const SHARED_DATA_FILE = 'data.json';
+            // ================= 共享数据配置（JSONBin） =================
+            // 请替换为你的 JSONBin Bin ID 和 Master Key
+            const JSONBIN_BIN_ID = '你的BIN_ID';          // ← 替换
+            const JSONBIN_MASTER_KEY = '你的MASTER_KEY';  // ← 替换
+            const JSONBIN_BASE = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
 
             // ================= 文本链接转换工具 =================
             function linkify(text) {
@@ -997,11 +999,18 @@
                 return out;
             }
 
+            // 从 JSONBin 加载最新数据
+            // forceOverwrite = true：游客打开时强制覆盖本地，看到最新
+            // forceOverwrite = false：密钥人打开时仅填补缺失，本地优先
             async function loadSharedData(forceOverwrite = false) {
                 try {
-                    const resp = await fetch(SHARED_DATA_FILE + '?t=' + Date.now(), { cache: 'no-store' });
+                    const resp = await fetch(JSONBIN_BASE + '/latest', {
+                        headers: { 'X-Master-Key': JSONBIN_MASTER_KEY },
+                        cache: 'no-store'
+                    });
                     if (!resp.ok) return false;
-                    const data = await resp.json();
+                    const result = await resp.json();
+                    const data = result.record || {};
                     let changed = false;
                     Object.entries(data).forEach(([k, v]) => {
                         if (v === null || v === undefined) return;
@@ -1015,46 +1024,32 @@
                     });
                     return changed;
                 } catch (e) {
-                    console.warn('共享数据加载失败（可能未部署或 file:// 打开）', e);
+                    console.warn('JSONBin 加载失败', e);
                     return false;
                 }
             }
 
-            window.exportSharedData = function() {
-                const data = collectAllData();
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = 'data.json';
-                a.click();
-                console.log('已导出 data.json，请提交到仓库根目录覆盖旧文件');
-            };
-
+            // 推送到 JSONBin
             async function saveRemoteData() {
-                if (!REMOTE_SYNC_URL) return;
                 try {
-                    await fetch(REMOTE_SYNC_URL, {
+                    await fetch(JSONBIN_BASE, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_MASTER_KEY
+                        },
                         body: JSON.stringify(collectAllData())
                     });
                 } catch (e) {
-                    console.warn('远程同步失败', e);
+                    console.warn('JSONBin 同步失败', e);
                 }
             }
             window.saveRemoteData = saveRemoteData;
 
-            let hasEditedInSession = false;
+            // 统一保存后触发远程同步
             function afterSave() {
-                hasEditedInSession = true;
                 saveRemoteData();
             }
-
-            window.addEventListener('beforeunload', function(e) {
-                if (hasEditedInSession && !window._hasExported) {
-                    console.log('%c💡 提示：您编辑过内容。若要让游客看到最新内容，请在控制台执行 exportSharedData() 导出 data.json 并上传到仓库根目录。', 'color:#6b9bd2;font-weight:bold;');
-                }
-            });
 
             // ================= 音乐 =================
             const bgMusic = document.getElementById('bgMusic');
@@ -1103,6 +1098,7 @@
                 }
             });
 
+            // ============ 网易云输入解析 ============
             function parseNeteaseInput(inputVal) {
                 let id = null, title = null, artist = null;
                 const tm = inputVal.match(/《(.+?)》/);
@@ -1354,7 +1350,6 @@
                 }
             }
 
-            // 迁移标记，避免默认数据反复覆盖
             function ensureDefaultData(postId, defaultData) {
                 let feedsData = getFeedsData(postId);
                 if (feedsData) {
@@ -1879,20 +1874,19 @@
             const pwdInput = document.getElementById('pwdInput');
             const pwdError = document.getElementById('pwdError');
 
-            // 【关键修复】模式切换时，同步contenteditable状态，并刷新所有动态区域
             function setMode(mode) {
                 if (mode === 'edit') {
                     body.classList.add('edit-mode');
                     document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'true'));
-                    // 对于动态生成的文本区域也设置为可编辑
-                    document.querySelectorAll('.feed-text, .accordion-title, .accordion-desc').forEach(el => el.setAttribute('contenteditable', 'true'));
+                    document.querySelectorAll('.feed-text').forEach(el => el.setAttribute('contenteditable', 'true'));
+                    document.querySelectorAll('.accordion-title, .accordion-desc').forEach(el => el.setAttribute('contenteditable', 'true'));
                 } else {
                     body.classList.remove('edit-mode');
                     document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'false'));
-                    document.querySelectorAll('.feed-text, .accordion-title, .accordion-desc').forEach(el => el.setAttribute('contenteditable', 'false'));
+                    document.querySelectorAll('.feed-text').forEach(el => el.setAttribute('contenteditable', 'false'));
+                    document.querySelectorAll('.accordion-title, .accordion-desc').forEach(el => el.setAttribute('contenteditable', 'false'));
                 }
 
-                // 重新渲染帖子流和须知，保证可编辑属性/事件绑定正确
                 initAllFeeds();
                 renderAccordion();
 
@@ -1920,7 +1914,7 @@
 
             document.getElementById('pwdConfirm').addEventListener('click', function() {
                 if (pwdInput.value === SECRET_KEY) {
-                    localStorage.setItem('amber_is_owner', '1'); // 标记所有者
+                    localStorage.setItem('amber_is_owner', '1');
                     setMode('edit');
                     pwdOverlay.classList.remove('active');
                 } else {
@@ -1949,7 +1943,6 @@
                 document.getElementById('textEditOverlay').classList.remove('active');
             };
 
-            // 【关键修复】全局blur事件处理，确保内容保存且重新渲染
             document.addEventListener('blur', function(e) {
                 const target = e.target;
                 if (target.hasAttribute('contenteditable') && target.getAttribute('contenteditable') === 'true') {
@@ -2149,6 +2142,9 @@
             // ================= 启动 =================
             (async function init() {
                 const isOwner = localStorage.getItem('amber_is_owner') === '1';
+
+                // 游客：强制覆盖本地，看到最新
+                // 密钥人：本地优先，仅填补缺失
                 if (!isOwner) {
                     await loadSharedData(true);
                 } else {
