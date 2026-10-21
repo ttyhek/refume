@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Amber's Starry Sky</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --c-bg: #f8fafc;
+            --c-surface: #ffffff;
+            --c-primary: #6b9bd2;
+            --c-primary-light: #8cb3db;
+            --c-primary-dark: #4a7bb0;
+            --c-text-main: #1e3a5f;
+            --c-text-sub: #5a7898;
+            --c-text-muted: #8ba5c2;
+            --c-border: rgba(180, 210, 240, 0.6);
+            --c-action-bg: rgba(235, 245, 255, 0.7);
+            --shadow-sm: 0 2px 8px -2px rgba(30, 58, 95, 0.05);
+            --shadow-md: 0 8px 24px -8px rgba(30, 58, 95, 0.12);
+            --radius-card: 20px;
+            --radius-pill: 50px;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'PingFang SC', 'Helvetica Neue', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--c-bg);
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; color: var(--c-text-main);
+        }
+
+        .homepage {
+            max-width: 100%; width: 100%;
+            background: var(--c-surface);
+            min-height: 100vh; position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.02);
+            border-left: 1px solid rgba(0, 0, 0, 0.03);
+            border-right: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        @media (min-width: 641px) {
+            .homepage {
+                max-width: 640px;
+                border-radius: 0 0 20px 20px;
+                margin-top: 20px;
+            }
+        }
+
+        /* 顶部导航 */
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--c-border);
+            position: sticky; top: 0; z-index: 20;
+        }
+
+        .music-player {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+        .music-btn {
+            background: linear-gradient(135deg, var(--c-primary-light), var(--c-primary));
+            color: white; width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 12px; font-size: 1rem; transform: rotate(-3deg);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(107, 155, 210, 0.4);
+            flex-shrink: 0;
+        }
+        .music-btn:hover { transform: rotate(0deg) scale(1.05); }
+
+        .music-info {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            line-height: 1.2;
+        }
+        .music-title {
+            font-weight: 800;
+            color: var(--c-text-main);
+            max-width: 90px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .music-artist {
+            color: var(--c-text-muted);
+        }
+
+        .music-edit-hint {
+            display: none;
+            position: absolute;
+            right: -4px;
+            top: -6px;
+            background: var(--c-primary-dark);
+            color: #fff;
+            font-size: 0.55rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 25;
+            animation: fadeInHint 0.3s ease;
+        }
+        body.edit-mode .music-edit-hint { display: block; }
+        @keyframes fadeInHint { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .nav-actions { display: flex; align-items: center; gap: 12px; }
+
+        .mode-toggle {
+            display: flex; background: rgba(107, 155, 210, 0.1);
+            border-radius: 20px; padding: 4px; cursor: pointer;
+            border: 1px solid rgba(107, 155, 210, 0.2);
+        }
+        .mode-btn {
+            padding: 5px 12px; border-radius: 16px; font-size: 0.75rem;
+            font-weight: 600; color: var(--c-text-sub); transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background: var(--c-surface); color: var(--c-primary-dark);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        /* 封面背景 */
+        .profile-cover {
+            height: 150px;
+            background: #e2e8f0;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: all 0.2s;
+        }
+        .profile-cover::after {
+            content: "✦ ✧"; position: absolute; top: 15px; right: 20px;
+            font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); letter-spacing: 8px;
+            pointer-events: none; text-shadow: 0 0 4px rgba(0,0,0,0.2);
+        }
+        .cover-edit-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+            color: white; display: none; align-items: center; justify-content: center;
+            font-weight: 600; cursor: pointer; z-index: 1;
+            font-size: 0.9rem;
+        }
+        .cover-edit-overlay i { font-size: 1.5rem; margin-right: 8px; }
+        body.edit-mode .profile-cover:hover .cover-edit-overlay { display: flex; }
+
+        /* 头像区域 */
+        .profile-header {
+            padding: 0 20px; display: flex; align-items: flex-end;
+            margin-top: -45px; position: relative; z-index: 5;
+        }
+
+        .avatar-wrapper {
+            position: relative; margin-right: 16px; flex-shrink: 0;
+        }
+        .avatar {
+            width: 90px; height: 90px; border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 8px 20px -6px rgba(30, 58, 95, 0.3), 0 0 0 3px rgba(200, 230, 255, 0.5);
+            background-color: #cce0f5;
+            background-image: radial-gradient(circle at 50% 0%, #b8dcfc 0%, #6b9bd2 100%);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .avatar img {
+            width: 100%; height: 100%; object-fit: cover; display: none;
+        }
+        .avatar::after {
+            content: "✦"; position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+            font-size: 1.5rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+        .avatar.has-img::after { display: none; }
+        .avatar.has-img img { display: block; }
+
+        .avatar-edit-overlay {
+            position: absolute; inset: 0; border-radius: 50%;
+            background: rgba(0,0,0,0.4); color: white;
+            display: none; align-items: center; justify-content: center;
+            font-size: 1.2rem; cursor: pointer; z-index: 10;
+        }
+        body.edit-mode .avatar-wrapper:hover .avatar-edit-overlay { display: flex; }
+
+        .profile-stats { display: flex; gap: 10px; margin-left: auto; padding-bottom: 8px; }
+        .stat-item {
+            display: flex; flex-direction: column; align-items: center;
+            background: rgba(255, 255, 255, 0.8); padding: 6px 12px;
+            border-radius: var(--radius-pill); border: 1px solid #fff;
+        }
+        .stat-number { font-weight: 800; font-size: 1rem; outline: none; border-radius: 4px; padding: 0 4px; }
+        .stat-label { color: var(--c-text-muted); font-size: 0.65rem; font-weight: 600; }
+
+        body.edit-mode .stat-number {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px dashed var(--c-primary-light);
+            cursor: text;
+        }
+
+        /* 用户信息 */
+        .user-info { padding: 14px 20px 16px; }
+        .display-name { font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 6px; outline: none; border-radius: 8px; padding: 2px 6px; margin-left: -6px; transition: background 0.2s; }
+        .username { color: var(--c-text-sub); font-size: 0.85rem; margin-top: 4px; outline: none; border-radius: 8px; padding: 2px 6px; margin-left: -6px; display: inline-block; transition: background 0.2s; }
+
+        /* 个性签名 */
+        .custom-signature {
+            margin-top: 8px; font-size: 0.85rem; color: var(--c-text-sub);
+            outline: none; border-radius: 8px; padding: 2px 6px; margin-left: -6px;
+            display: inline-block; transition: background 0.2s;
+        }
+
+        .bio {
+            margin-top: 12px; font-size: 0.85rem; line-height: 1.5;
+            background: linear-gradient(to right, rgba(240, 248, 255, 0.8), rgba(240, 248, 255, 0.4));
+            padding: 12px 14px; border-radius: 14px; border-left: 3px solid var(--c-primary);
+            display: flex; flex-wrap: wrap; gap: 10px 16px; outline: none; transition: background 0.2s;
+        }
+        .bio span { display: flex; align-items: center; gap: 5px; font-weight: 500; outline: none; }
+        .join-date { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.75rem; color: var(--c-text-sub); outline: none; }
+
+        /* 编辑模式高亮 */
+        body.edit-mode .display-name,
+        body.edit-mode .username,
+        body.edit-mode .custom-signature,
+        body.edit-mode .bio span,
+        body.edit-mode .join-date {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px dashed var(--c-primary-light);
+            box-shadow: 0 0 0 2px rgba(107, 155, 210, 0.1);
+            cursor: text;
+        }
+
+        /* 标签页 */
+        .profile-tabs {
+            display: flex; border-bottom: 1px solid var(--c-border); padding: 0 8px;
+            background: rgba(255, 255, 255, 0.8); position: sticky; top: 60px; z-index: 15; backdrop-filter: blur(8px);
+            justify-content: space-around;
+        }
+        .tab {
+            padding: 14px 8px 12px; font-weight: 700; font-size: 0.85rem;
+            color: var(--c-text-sub); border-bottom: 3px solid transparent;
+            cursor: pointer; flex: 1; text-align: center; white-space: nowrap;
+        }
+        .tab.active { color: var(--c-primary-dark); border-bottom-color: var(--c-primary-dark); font-weight: 800; }
+
+        .tab-panel { display: none; animation: panelFadeIn 0.4s ease; }
+        .tab-panel.active { display: block; }
+        @keyframes panelFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .panel-scroll { padding: 16px 16px 30px; }
+
+        /* ===== 图文流样式 ===== */
+        .design-post {
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            margin-bottom: 0;
+            box-shadow: none;
+            position: relative;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+
+        .feed-item {
+            display: flex; flex-direction: column; gap: 10px;
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--c-border);
+            position: relative;
+        }
+
+        .feed-item.pinned {
+            background: rgba(255, 250, 240, 0.8);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 4px 0;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.05);
+        }
+
+        .pinned-badge {
+            display: none;
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 20px;
+            box-shadow: 0 2px 6px rgba(253, 160, 133, 0.3);
+            z-index: 10;
+        }
+
+        .feed-item.pinned .pinned-badge { display: block; }
+
+        .feed-header {
+            display: flex; align-items: center; gap: 10px;
+            position: relative;
+        }
+
+        .feed-avatar {
+            width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; border: 2px solid #fff;
+            background-color: #cce0f5;
+            background-image: radial-gradient(circle at 50% 0%, #b8dcfc 0%, #6b9bd2 100%);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .feed-avatar img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .feed-avatar::after {
+            content: "✦"; position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+            font-size: 0.8rem; color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.8);
+        }
+        .feed-avatar.has-img::after { display: none; }
+        .feed-avatar.has-img img { display: block; }
+
+        .feed-meta {
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .feed-name { font-weight: 800; font-size: 0.9rem; }
+        .feed-username { color: var(--c-text-sub); font-size: 0.7rem; }
+
+        .feed-time {
+            color: var(--c-text-muted); font-size: 0.7rem; margin-left: auto;
+            margin-right: 60px;
+        }
+
+        .feed-text-wrapper {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .feed-text {
+            font-size: 0.85rem; line-height: 1.6; color: var(--c-text-main);
+            outline: none; padding: 4px; border-radius: 4px; margin-bottom: 4px;
+            flex: 1;
+        }
+
+        .feed-text a, .accordion-desc a {
+            color: var(--c-primary);
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        body.edit-mode .feed-text {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px dashed var(--c-primary-light);
+            box-shadow: 0 0 0 2px rgba(107, 155, 210, 0.1);
+            cursor: text;
+        }
+
+        .feed-text-edit-btn {
+            display: none;
+            background: var(--c-primary);
+            color: #fff;
+            border-radius: 50%;
+            width: 24px; height: 24px;
+            align-items: center; justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+        }
+        .feed-text-edit-btn:hover { transform: scale(1.1); }
+        body.edit-mode .feed-text-edit-btn { display: flex; }
+
+        /* 动态网格图片排版 */
+        .feed-image-grid {
+            display: grid;
+            gap: 6px;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .feed-image-grid[data-count="1"] { grid-template-columns: 1fr; max-width: 100%; }
+        .feed-image-grid[data-count="2"] { grid-template-columns: repeat(2, 1fr); }
+        .feed-image-grid[data-count="3"] { grid-template-columns: repeat(3, 1fr); }
+
+        .grid-image-item {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 6px;
+            overflow: hidden;
+            background-color: #f0f4f8;
+            cursor: pointer;
+        }
+
+        .grid-image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .grid-image-item.single {
+            aspect-ratio: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-color: transparent;
+            scrollbar-width: thin;
+        }
+        .grid-image-item.single::-webkit-scrollbar { width: 4px; }
+        .grid-image-item.single::-webkit-scrollbar-thumb { background: var(--c-primary-light); border-radius: 10px; }
+
+        .grid-image-item.single img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            border-radius: 6px;
+        }
+
+        .swipe-hint {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+            color: #fff;
+            text-align: center;
+            padding: 16px 10px 6px 10px;
+            font-size: 0.65rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 0 0 6px 6px;
+        }
+        .grid-image-item.single:hover .swipe-hint,
+        .grid-image-item.single.show-hint .swipe-hint {
+            opacity: 1;
+        }
+        .swipe-hint i {
+            margin-right: 4px;
+            font-size: 0.7rem;
+            animation: bounceDown 1.5s infinite;
+        }
+        @keyframes bounceDown {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(3px); }
+        }
+
+        .grid-add-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border: 1px dashed var(--c-primary-light);
+            border-radius: 6px;
+            background: rgba(245, 249, 255, 0.3);
+            color: var(--c-primary-dark);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+        .grid-add-btn:hover { background: rgba(220, 235, 255, 0.9); }
+        .grid-add-btn i { font-size: 1.2rem; margin-bottom: 4px; }
+
+        .img-edit-overlay {
+            position: absolute; inset: 0; border-radius: inherit;
+            background: rgba(0,0,0,0.4); color: white;
+            display: none; align-items: center; justify-content: center; flex-direction: column;
+            cursor: pointer; z-index: 10; font-weight: 600; font-size: 0.75rem;
+        }
+        body.edit-mode .grid-image-item:hover .img-edit-overlay { display: flex; }
+        .img-edit-overlay i { font-size: 1.2rem; margin-bottom: 4px; }
+
+        .img-delete-btn {
+            display: none;
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+        .img-delete-btn:hover { background: #dc2626; transform: scale(1.1); }
+        body.edit-mode .grid-image-item:hover .img-delete-btn { display: flex; }
+
+        .feed-actions-row {
+            display: none;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--c-border);
+        }
+        body.edit-mode .feed-actions-row { display: flex; }
+
+        .action-btn {
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .action-btn.pin-btn { color: #d97706; background: rgba(253, 230, 138, 0.3); }
+        .action-btn.pin-btn:hover { background: rgba(253, 230, 138, 0.6); }
+        .action-btn.unpin-btn { color: #6b7280; background: rgba(243, 244, 246, 0.8); }
+        .action-btn.unpin-btn:hover { background: rgba(229, 231, 235, 1); }
+        .action-btn.delete-btn { color: #ef4444; background: rgba(254, 226, 226, 0.5); }
+        .action-btn.delete-btn:hover { background: rgba(254, 202, 202, 0.8); }
+
+        .add-actions { display: none; gap: 10px; margin-top: 8px; }
+        body.edit-mode .add-actions { display: flex; }
+
+        .add-new-feed-btn {
+            flex: 1;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            padding: 12px;
+            background: rgba(245, 249, 255, 0.6);
+            border: 2px dashed var(--c-primary-light);
+            border-radius: 12px; color: var(--c-primary-dark);
+            font-weight: 700; cursor: pointer; transition: background 0.2s;
+            font-size: 0.8rem;
+        }
+        .add-new-feed-btn:hover { background: rgba(220, 235, 255, 0.9); }
+        .add-new-feed-btn i { font-size: 1.2rem; margin-bottom: 6px; }
+
+        /* 须知板块 */
+        .accordion-item {
+            background: #fff;
+            border-radius: 14px;
+            margin-bottom: 12px;
+            border: 1px solid var(--c-border);
+            overflow: hidden;
+            position: relative;
+        }
+        .accordion-header {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 16px; cursor: pointer;
+            background: rgba(250, 253, 255, 0.9);
+        }
+        .accordion-icon {
+            width: 30px; height: 30px; border-radius: 10px;
+            background: rgba(107, 155, 210, 0.1); color: var(--c-primary);
+            display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+        }
+        .accordion-title {
+            font-weight: 700; font-size: 0.9rem; flex: 1;
+            outline: none; border-radius: 4px; padding: 2px 4px; margin-left: -4px;
+            position: relative;
+        }
+        body.edit-mode .accordion-title {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px dashed var(--c-primary-light);
+            cursor: text;
+        }
+
+        .acc-hint-icon {
+            display: none;
+            color: var(--c-primary);
+            font-size: 0.75rem;
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+        body.edit-mode .acc-hint-icon { display: inline-block; }
+
+        .accordion-arrow { color: var(--c-text-muted); transition: transform 0.3s; font-size: 0.8rem; }
+        .accordion-item.active .accordion-arrow { transform: rotate(180deg); }
+
+        .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.4s; padding: 0 16px; background: #fff; position: relative; }
+        .accordion-item.active .accordion-body { max-height: 500px; padding: 0 16px 16px; }
+
+        .accordion-desc {
+            font-size: 0.85rem; color: var(--c-text-sub); line-height: 1.6;
+            border-top: 1px dashed var(--c-border); padding-top: 12px; outline: none;
+            max-height: 200px; overflow-y: auto; padding-right: 6px;
+            position: relative;
+        }
+        .accordion-desc::-webkit-scrollbar { width: 4px; }
+        .accordion-desc::-webkit-scrollbar-track { background: transparent; }
+        .accordion-desc::-webkit-scrollbar-thumb { background: var(--c-primary-light); border-radius: 10px; }
+
+        body.edit-mode .accordion-desc {
+            background: #f8fbff;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid var(--c-primary-light);
+            cursor: text;
+        }
+
+        .acc-desc-hint {
+            display: none;
+            position: absolute;
+            right: 10px;
+            top: 8px;
+            background: var(--c-primary);
+            color: #fff;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        body.edit-mode .accordion-desc:hover .acc-desc-hint { display: block; }
+
+        .add-acc-btn {
+            display: none;
+            width: 100%;
+            padding: 12px;
+            background: rgba(245, 249, 255, 0.6);
+            border: 2px dashed var(--c-primary-light);
+            border-radius: 12px;
+            color: var(--c-primary-dark);
+            font-weight: 700; cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+            font-size: 0.8rem;
+            margin-top: 16px;
+        }
+        body.edit-mode .add-acc-btn { display: block; }
+        .add-acc-btn:hover { background: rgba(220, 235, 255, 0.9); }
+
+        .end-note { text-align: center; padding: 20px 0 40px; color: var(--c-text-muted); font-size: 0.75rem; }
+
+        /* 弹窗 */
+        .pwd-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center;
+            z-index: 999; opacity: 0; transition: opacity 0.3s;
+        }
+        .pwd-overlay.active { display: flex; opacity: 1; }
+        .pwd-card {
+            background: #fff; padding: 24px 20px; border-radius: 20px; width: 90%; max-width: 320px;
+            text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: translateY(20px); transition: transform 0.3s;
+        }
+        .pwd-overlay.active .pwd-card { transform: translateY(0); }
+        .pwd-icon { font-size: 1.8rem; color: var(--c-primary); margin-bottom: 10px; }
+        .pwd-title { font-weight: 800; font-size: 1rem; margin-bottom: 6px; }
+        .pwd-desc { font-size: 0.8rem; color: var(--c-text-sub); margin-bottom: 16px; }
+        .pwd-input { width: 100%; padding: 10px; border: 2px solid var(--c-border); border-radius: 10px; font-size: 1rem; text-align: center; letter-spacing: 4px; outline: none; margin-bottom: 14px; }
+        .pwd-actions { display: flex; gap: 10px; }
+        .pwd-btn { flex: 1; padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; font-size: 0.85rem; }
+        .pwd-btn-cancel { background: #f1f5f9; color: var(--c-text-sub); }
+        .pwd-btn-confirm { background: var(--c-primary); color: #fff; }
+        .pwd-error { color: #ef4444; font-size: 0.75rem; margin-top: 6px; display: none; }
+        .pwd-error.show { display: block; animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        .edit-text-modal textarea {
+            width: 100%; height: 120px; padding: 12px;
+            border: 2px solid var(--c-border); border-radius: 10px;
+            font-size: 0.95rem; outline: none; resize: none; margin-bottom: 16px;
+            font-family: inherit; line-height: 1.5; color: var(--c-text-main);
+        }
+        .edit-text-modal textarea:focus { border-color: var(--c-primary); }
+        .edit-text-modal .link-hint { display: block; text-align: left; font-size: 0.75rem; color: var(--c-text-muted); margin-bottom: 8px; margin-top: -4px; }
+
+        .music-config-modal .pwd-input { letter-spacing: normal; text-align: left; font-size: 0.8rem; padding: 10px; }
+        .music-config-modal label { display: block; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--c-text-sub); margin-bottom: 4px; margin-top: 8px; }
+        .music-config-modal .link-hint { display: block; text-align: left; font-size: 0.7rem; color: var(--c-text-muted); margin-bottom: 6px; margin-top: -6px; line-height: 1.5; }
+
+        .add-acc-modal .pwd-input { letter-spacing: normal; text-align: left; font-size: 0.85rem; padding: 10px; margin-bottom: 10px; }
+        .add-acc-modal textarea { width: 100%; height: 100px; padding: 10px; border: 2px solid var(--c-border); border-radius: 8px; font-size: 0.85rem; outline: none; resize: none; margin-bottom: 10px; font-family: inherit; }
+
+        .hidden-file { display: none; }
+
+        /* 全屏图片预览 */
+        .image-preview-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95);
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; opacity: 0; transition: opacity 0.3s;
+        }
+        .image-preview-overlay.active { display: flex; opacity: 1; }
+        .preview-container { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+        .preview-container::-webkit-scrollbar { display: none; }
+        .preview-slide { flex: 0 0 100%; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; scroll-snap-align: center; }
+        .preview-slide img { max-width: 95%; max-height: 90%; object-fit: contain; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; pointer-events: none; }
+        .preview-indicator { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.8); font-size: 0.85rem; background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 20px; pointer-events: none; }
+        .preview-close-btn { position: absolute; top: 20px; right: 20px; color: rgba(255,255,255,0.8); font-size: 2rem; cursor: pointer; z-index: 10000; padding: 10px; line-height: 1; }
+        .preview-close-btn:hover { color: #fff; }
+
+        @media (max-width: 500px) {
+            .navbar { padding: 12px 16px; }
+            .profile-cover { height: 120px; }
+            .profile-header { padding: 0 16px; margin-top: -40px; }
+            .avatar { width: 80px; height: 80px; }
+            .profile-stats { gap: 8px; padding-bottom: 6px; }
+            .stat-item { padding: 4px 10px; }
+            .stat-number { font-size: 0.9rem; }
+            .stat-label { font-size: 0.6rem; }
+            .user-info { padding: 12px 16px 14px; }
+            .display-name { font-size: 1.3rem; }
+            .username { font-size: 0.8rem; }
+            .custom-signature { font-size: 0.8rem; }
+            .bio { font-size: 0.8rem; gap: 8px 12px; padding: 10px 12px; }
+            .join-date { gap: 8px; font-size: 0.7rem; margin-top: 8px; }
+            .profile-tabs { padding: 0 4px; top: 56px; }
+            .tab { padding: 12px 4px 10px; font-size: 0.75rem; }
+            .panel-scroll { padding: 12px 12px 30px; }
+            .feed-item { padding: 10px 0; gap: 8px; }
+            .feed-avatar { width: 36px; height: 36px; }
+            .feed-name { font-size: 0.85rem; }
+            .feed-username { font-size: 0.65rem; }
+            .feed-time { font-size: 0.65rem; margin-right: 50px; }
+            .feed-text { font-size: 0.8rem; margin-bottom: 2px; }
+            .accordion-header { padding: 12px; gap: 10px; }
+            .accordion-icon { width: 26px; height: 26px; font-size: 0.8rem; }
+            .accordion-title { font-size: 0.85rem; }
+            .accordion-body { padding: 0 12px; }
+            .accordion-item.active .accordion-body { padding: 0 12px 12px; }
+            .accordion-desc { font-size: 0.8rem; padding-top: 10px; }
+            .add-actions { gap: 8px; margin-top: 6px; }
+            .add-new-feed-btn { padding: 10px; font-size: 0.75rem; }
+            .add-new-feed-btn i { font-size: 1rem; margin-bottom: 4px; }
+            .end-note { font-size: 0.7rem; padding: 16px 0 30px; }
+            .pwd-card { padding: 20px 16px; }
+            .pwd-icon { font-size: 1.5rem; }
+            .pwd-title { font-size: 0.95rem; }
+            .pwd-input { font-size: 0.9rem; padding: 8px; }
+            .pwd-btn { font-size: 0.8rem; padding: 8px; }
+            .music-title { max-width: 80px; font-size: 0.65rem; }
+            .music-artist { font-size: 0.6rem; }
+            .music-btn { width: 30px; height: 30px; font-size: 0.9rem; }
+        }
+
+        @media (max-width: 360px) {
+            .display-name { font-size: 1.1rem; }
+            .profile-stats { gap: 4px; }
+            .stat-item { padding: 4px 6px; }
+            .stat-number { font-size: 0.8rem; }
+            .stat-label { font-size: 0.55rem; }
+            .tab { font-size: 0.7rem; padding: 10px 2px; }
+            .feed-name { font-size: 0.8rem; }
+            .feed-text { font-size: 0.75rem; }
+            .music-title { max-width: 60px; }
+        }
+    </style>
+</head>
+<body>
+    <audio id="bgMusic" loop preload="auto">
+        <source src="https://music.163.com/song/media/outer/url?id=29722012.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="homepage">
+        <div class="navbar">
+            <div class="music-player">
+                <div class="music-edit-hint" id="musicEditHint">更换音乐</div>
+                <div class="music-btn" id="musicPlayBtn">
+                    <i class="fas fa-play" id="musicIcon"></i>
+                </div>
+                <div class="music-info">
+                    <span class="music-title" id="musicTitleDisplay">新地球</span>
+                    <span class="music-artist" id="musicArtistDisplay">林俊杰</span>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <div class="mode-toggle" id="modeToggle">
+                    <div class="mode-btn active" data-mode="preview">预览</div>
+                    <div class="mode-btn" data-mode="edit">编辑</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-cover" id="profileCover">
+            <div class="cover-edit-overlay" id="triggerCoverUpload">
+                <i class="fas fa-image"></i> 更换封面
+            </div>
+            <input type="file" id="coverInput" accept="image/*" class="hidden-file">
+        </div>
+
+        <div class="profile-header">
+            <div class="avatar-wrapper" id="avatarWrapper">
+                <div class="avatar" id="mainAvatar">
+                    <img id="mainAvatarImg" src="" alt="">
+                </div>
+                <div class="avatar-edit-overlay" id="triggerAvatarUpload"><i class="fas fa-camera"></i></div>
+                <input type="file" id="avatarInput" accept="image/*" class="hidden-file">
+            </div>
+
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="statFollowing" contenteditable="false">358</span>
+                    <span class="stat-label">关注</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="statFollowers" contenteditable="false">2.4k</span>
+                    <span class="stat-label">粉丝</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="statPosts">0</span>
+                    <span class="stat-label">帖子</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="user-info">
+            <div class="display-name" id="editName" contenteditable="false">琥珀 <i class="fas fa-certificate" style="color:var(--c-primary)"></i></div>
+            <div class="username" id="editUsername" contenteditable="false"><i class="fas fa-at"></i> <span id="usernameDisplay">amber_starry</span></div>
+
+            <div class="custom-signature" id="editSignature" contenteditable="false">半生漂泊，半生寻觅。</div>
+
+            <div class="bio" id="editBio">
+                <span contenteditable="false"><i class="fas fa-birthday-cake"></i> 21岁</span>
+                <span contenteditable="false"><i class="fas fa-star"></i> 双鱼座</span>
+                <span contenteditable="false"><i class="fas fa-brain"></i> INFP</span>
+                <span contenteditable="false"><i class="fas fa-users"></i> 星海旅团</span>
+            </div>
+            <div class="join-date" id="editJoinDate" contenteditable="false">
+                <span><i class="fas fa-map-marker-alt"></i> 上海 · 静安</span>
+                <span><i class="far fa-calendar-alt"></i> 2021年3月加入</span>
+            </div>
+        </div>
+
+        <div class="profile-tabs" id="tabsContainer">
+            <div class="tab active" data-tab="tab1">日常</div>
+            <div class="tab" data-tab="tab2">须知</div>
+            <div class="tab" data-tab="tab3">头牌</div>
+            <div class="tab" data-tab="tab4">板评</div>
+            <div class="tab" data-tab="tab5">话术</div>
+            <div class="tab" data-tab="tab6">冠名</div>
+        </div>
+
+        <div class="tab-panels">
+            <div class="tab-panel active" id="tab1">
+                <div class="panel-scroll">
+                    <div class="design-post" id="feed-post-1"></div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab2">
+                <div class="panel-scroll">
+                    <div id="accordionContainer"></div>
+                    <div class="add-acc-btn" onclick="openAddAccordionModal()">+ 添加新版块</div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab3">
+                <div class="panel-scroll">
+                    <div class="design-post" id="feed-post-3"></div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab4">
+                <div class="panel-scroll">
+                    <div class="design-post" id="feed-post-4"></div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab5">
+                <div class="panel-scroll">
+                    <div class="design-post" id="feed-post-5"></div>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab6">
+                <div class="panel-scroll">
+                    <div class="design-post" id="feed-post-6"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="end-note"><i class="fas fa-circle"></i> 已经到底了</div>
+    </div>
+
+    <div class="pwd-overlay" id="pwdOverlay">
+        <div class="pwd-card">
+            <div class="pwd-icon"><i class="fas fa-lock"></i></div>
+            <div class="pwd-title">输入编辑密钥</div>
+            <div class="pwd-desc">请输入密码以切换到编辑模式</div>
+            <input type="password" class="pwd-input" id="pwdInput" placeholder="••••" maxlength="8">
+            <div class="pwd-error" id="pwdError">密钥错误，请重试</div>
+            <div class="pwd-actions">
+                <button class="pwd-btn pwd-btn-cancel" id="pwdCancel">取消</button>
+                <button class="pwd-btn pwd-btn-confirm" id="pwdConfirm">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pwd-overlay" id="textEditOverlay">
+        <div class="pwd-card edit-text-modal">
+            <div class="pwd-icon"><i class="fas fa-pen-nib"></i></div>
+            <div class="pwd-title">修改文字内容</div>
+            <div class="pwd-desc">请在此处输入您的文字</div>
+            <div class="link-hint"><i class="fas fa-link"></i> 支持输入网址 (如 https://...) 自动生成链接</div>
+            <textarea id="textEditArea" placeholder="输入文字..."></textarea>
+            <div class="pwd-actions">
+                <button class="pwd-btn pwd-btn-cancel" onclick="document.getElementById('textEditOverlay').classList.remove('active')">取消</button>
+                <button class="pwd-btn pwd-btn-confirm" onclick="saveTextOnlyEdit()">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pwd-overlay" id="musicConfigOverlay">
+        <div class="pwd-card music-config-modal">
+            <div class="pwd-icon"><i class="fas fa-music"></i></div>
+            <div class="pwd-title">配置网易云音乐</div>
+            <div class="pwd-desc">粘贴歌曲ID、链接或整段分享文本，一键识别</div>
+            <div class="link-hint"><i class="fas fa-magic"></i> 支持格式：歌曲ID / music.163.com 完整链接 / App 分享文本（含《歌名》）/ 163cn.tv 短链接，粘贴后自动填入歌名与歌手</div>
+
+            <label>网易云音乐ID/链接/分享文本</label>
+            <input type="text" class="pwd-input" id="configMusicId" placeholder="例如：29722012 或 粘贴分享链接">
+
+            <label>歌曲名称</label>
+            <input type="text" class="pwd-input" id="configMusicTitle" placeholder="新地球">
+
+            <label>歌手</label>
+            <input type="text" class="pwd-input" id="configMusicArtist" placeholder="林俊杰">
+
+            <div class="pwd-actions" style="margin-top: 12px;">
+                <button class="pwd-btn pwd-btn-cancel" onclick="document.getElementById('musicConfigOverlay').classList.remove('active')">取消</button>
+                <button class="pwd-btn pwd-btn-confirm" id="musicSaveBtn" onclick="saveMusicConfig()">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pwd-overlay" id="addAccOverlay">
+        <div class="pwd-card add-acc-modal">
+            <div class="pwd-icon"><i class="fas fa-plus-circle"></i></div>
+            <div class="pwd-title">新增须知版块</div>
+            <div class="pwd-desc">请填写标题和内容</div>
+            <div class="link-hint"><i class="fas fa-link"></i> 支持输入网址自动生成链接</div>
+            <input type="text" class="pwd-input" id="newAccTitle" placeholder="版块标题">
+            <textarea id="newAccContent" placeholder="版块内容..."></textarea>
+            <div class="pwd-actions">
+                <button class="pwd-btn pwd-btn-cancel" onclick="document.getElementById('addAccOverlay').classList.remove('active')">取消</button>
+                <button class="pwd-btn pwd-btn-confirm" onclick="saveNewAccordion()">确认添加</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="image-preview-overlay" id="imagePreviewOverlay">
+        <div class="preview-close-btn" onclick="closeImagePreview()"><i class="fas fa-times"></i></div>
+        <div class="preview-container" id="previewContainer"></div>
+        <div class="preview-indicator" id="previewIndicator"></div>
+    </div>
+
+    <input type="file" id="globalImgInput" accept="image/*" multiple class="hidden-file">
+
+    <script>
+        (function() {
+            // ================= 共享数据配置 =================
+            const REMOTE_SYNC_URL = '';
+            const SHARED_DATA_FILE = 'data.json';
+
+            // ================= 文本链接转换工具 =================
+            function linkify(text) {
+                const urlRegex = /((https?:\/\/)[^\s]+)/g;
+                return text.replace(urlRegex, function(url) {
+                    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+                });
+            }
+
+            // ================= 共享数据加载与导出 =================
+            function collectAllData() {
+                const out = {};
+                Object.keys(localStorage).forEach(k => {
+                    if (k.startsWith('amber_')) out[k] = localStorage.getItem(k);
+                });
+                return out;
+            }
+
+            async function loadSharedData() {
+                try {
+                    const resp = await fetch(SHARED_DATA_FILE + '?t=' + Date.now(), { cache: 'no-store' });
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    Object.entries(data).forEach(([k, v]) => {
+                        if (v !== null && v !== undefined && localStorage.getItem(k) === null) {
+                            localStorage.setItem(k, v);
+                        }
+                    });
+                } catch (e) {
+                    console.warn('共享数据加载失败（可能未部署或 file:// 打开）', e);
+                }
+            }
+
+            window.exportSharedData = function() {
+                const data = collectAllData();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'data.json';
+                a.click();
+                console.log('已导出 data.json，请提交到仓库根目录覆盖旧文件');
+            };
+
+            async function saveRemoteData() {
+                if (!REMOTE_SYNC_URL) return;
+                try {
+                    await fetch(REMOTE_SYNC_URL, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(collectAllData())
+                    });
+                } catch (e) {
+                    console.warn('远程同步失败', e);
+                }
+            }
+            window.saveRemoteData = saveRemoteData;
+
+            function afterSave() {
+                saveRemoteData();
+            }
+
+            // ================= 音乐 =================
+            const bgMusic = document.getElementById('bgMusic');
+            const musicPlayBtn = document.getElementById('musicPlayBtn');
+            const musicIcon = document.getElementById('musicIcon');
+            const musicEditHint = document.getElementById('musicEditHint');
+            const musicConfigOverlay = document.getElementById('musicConfigOverlay');
+
+            let isPlaying = false;
+
+            function attemptPlay() {
+                if (isPlaying) return;
+                let playPromise = bgMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        musicIcon.className = 'fas fa-pause';
+                        isPlaying = true;
+                    }).catch(error => { console.log("等待交互"); });
+                }
+            }
+
+            document.addEventListener('click', function initPlay() {
+                attemptPlay();
+                document.removeEventListener('click', initPlay);
+            }, { once: true });
+            window.addEventListener('load', attemptPlay);
+
+            musicPlayBtn.addEventListener('click', function() {
+                if (isPlaying) {
+                    bgMusic.pause();
+                    musicIcon.className = 'fas fa-play';
+                    isPlaying = false;
+                } else {
+                    attemptPlay();
+                }
+            });
+
+            bgMusic.addEventListener('play', () => { musicIcon.className = 'fas fa-pause'; isPlaying = true; });
+            bgMusic.addEventListener('pause', () => { musicIcon.className = 'fas fa-play'; isPlaying = false; });
+
+            bgMusic.addEventListener('error', function() {
+                const t = document.getElementById('musicTitleDisplay');
+                if (t && !t.textContent.includes('⚠️')) {
+                    t.textContent = t.textContent + ' ⚠️';
+                    t.title = '该歌曲可能因版权原因无法外链播放，请更换一首';
+                }
+            });
+
+            // ============ 网易云输入解析 ============
+            function parseNeteaseInput(inputVal) {
+                let id = null, title = null, artist = null;
+                const tm = inputVal.match(/《(.+?)》/);
+                if (tm) title = tm[1];
+                const am = inputVal.match(/分享\s*(.+?)\s*的单曲/) || inputVal.match(/([\u4e00-\u9fa5A-Za-z0-9_·\-]+)的单曲/);
+                if (am) artist = am[1];
+                const trimmed = inputVal.trim();
+                if (/^\d{4,}$/.test(trimmed)) id = trimmed;
+                if (!id) {
+                    const im = inputVal.match(/[?&]id=(\d+)/);
+                    if (im) id = im[1];
+                }
+                if (!id) {
+                    const pm = inputVal.match(/music\.163\.com(?:\/#)?\/(?:song|outchain\/[0-9a-zA-Z]+)\/(\d+)/);
+                    if (pm) id = pm[1];
+                }
+                return { id: id, title: title, artist: artist };
+            }
+
+            async function resolveShortLink(shortUrl) {
+                const fullUrl = /^https?:\/\//.test(shortUrl) ? shortUrl : ('https://' + shortUrl);
+                const enc = encodeURIComponent(fullUrl);
+                const proxies = [
+                    'https://api.allorigins.win/raw?url=' + enc,
+                    'https://api.codetabs.com/v1/proxy?quest=' + enc,
+                    'https://r.jina.ai/' + fullUrl
+                ];
+                for (const proxyUrl of proxies) {
+                    try {
+                        const controller = new AbortController();
+                        const timer = setTimeout(() => controller.abort(), 10000);
+                        const resp = await fetch(proxyUrl, { redirect: 'follow', signal: controller.signal });
+                        clearTimeout(timer);
+                        const text = await resp.text();
+                        const m = text.match(/[?&]id=(\d+)/) || text.match(/music\.163\.com\/song\/(\d+)/);
+                        if (m) return m[1];
+                    } catch (e) { console.log('代理解析失败', proxyUrl, e); }
+                }
+                return null;
+            }
+
+            musicEditHint.addEventListener('click', function() {
+                if(!document.body.classList.contains('edit-mode')) return;
+                document.getElementById('configMusicId').value = localStorage.getItem('amber_music_id') || '29722012';
+                document.getElementById('configMusicTitle').value = localStorage.getItem('amber_music_title') || '新地球';
+                document.getElementById('configMusicArtist').value = localStorage.getItem('amber_music_artist') || '林俊杰';
+                musicConfigOverlay.classList.add('active');
+            });
+
+            const configMusicIdInput = document.getElementById('configMusicId');
+            function autoFillMusicMeta() {
+                const val = configMusicIdInput.value.trim();
+                if (!val) return;
+                const parsed = parseNeteaseInput(val);
+                const titleEl = document.getElementById('configMusicTitle');
+                const artistEl = document.getElementById('configMusicArtist');
+                if (parsed.title && !titleEl.dataset.touched) titleEl.value = parsed.title;
+                if (parsed.artist && !artistEl.dataset.touched) artistEl.value = parsed.artist;
+            }
+            configMusicIdInput.addEventListener('input', autoFillMusicMeta);
+            configMusicIdInput.addEventListener('change', autoFillMusicMeta);
+            configMusicIdInput.addEventListener('paste', function() {
+                setTimeout(autoFillMusicMeta, 0);
+            });
+            document.getElementById('configMusicTitle').addEventListener('input', function() { this.dataset.touched = '1'; });
+            document.getElementById('configMusicArtist').addEventListener('input', function() { this.dataset.touched = '1'; });
+            musicConfigOverlay.addEventListener('transitionend', function() {
+                if (musicConfigOverlay.classList.contains('active')) {
+                    delete document.getElementById('configMusicTitle').dataset.touched;
+                    delete document.getElementById('configMusicArtist').dataset.touched;
+                }
+            });
+
+            window.saveMusicConfig = async function() {
+                const inputVal = configMusicIdInput.value.trim();
+                const titleEl = document.getElementById('configMusicTitle');
+                const artistEl = document.getElementById('configMusicArtist');
+                if (!inputVal) { alert('请输入音乐 ID、链接或分享文本'); return; }
+
+                let parsed = parseNeteaseInput(inputVal);
+                let musicId = parsed.id;
+
+                if (!musicId) {
+                    const shortMatch = inputVal.match(/163cn\.tv\/[A-Za-z0-9]+/);
+                    if (shortMatch) {
+                        const saveBtn = document.getElementById('musicSaveBtn');
+                        saveBtn.textContent = '解析中...';
+                        musicId = await resolveShortLink(shortMatch[0]);
+                        saveBtn.textContent = '保存配置';
+                    }
+                }
+
+                if (!musicId) {
+                    alert('未能从输入中识别出歌曲ID。\n支持：纯ID / music.163.com 链接 / App分享文本 / 163cn.tv 短链。\n若为短链请确认网络可用，或改用完整链接。');
+                    return;
+                }
+
+                const title = titleEl.value.trim() || parsed.title || '未知歌曲';
+                const artist = artistEl.value.trim() || parsed.artist || '未知歌手';
+
+                const newSrc = `https://music.163.com/song/media/outer/url?id=${musicId}.mp3`;
+                const titleDisplay = document.getElementById('musicTitleDisplay');
+                bgMusic.src = newSrc;
+                bgMusic.load();
+                titleDisplay.textContent = title;
+                titleDisplay.title = '';
+                document.getElementById('musicArtistDisplay').textContent = artist;
+                localStorage.setItem('amber_music_id', musicId);
+                localStorage.setItem('amber_music_title', title);
+                localStorage.setItem('amber_music_artist', artist);
+
+                isPlaying = false;
+                musicIcon.className = 'fas fa-play';
+                attemptPlay();
+                musicConfigOverlay.classList.remove('active');
+                afterSave();
+            };
+
+            const savedMusicId = localStorage.getItem('amber_music_id');
+            if (savedMusicId) {
+                bgMusic.src = `https://music.163.com/song/media/outer/url?id=${savedMusicId}.mp3`;
+                document.getElementById('musicTitleDisplay').textContent = localStorage.getItem('amber_music_title') || '未知歌曲';
+                document.getElementById('musicArtistDisplay').textContent = localStorage.getItem('amber_music_artist') || '未知歌手';
+            }
+
+            // ================= 多图全屏预览 =================
+            const imagePreviewOverlay = document.getElementById('imagePreviewOverlay');
+            const previewContainer = document.getElementById('previewContainer');
+            const previewIndicator = document.getElementById('previewIndicator');
+
+            window.openImagePreview = function(images, currentIndex) {
+                previewContainer.innerHTML = '';
+
+                images.forEach((src, idx) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'preview-slide';
+                    const img = document.createElement('img');
+                    img.src = src;
+                    slide.appendChild(img);
+                    previewContainer.appendChild(slide);
+                });
+
+                function updateIndicator() {
+                    const index = Math.round(previewContainer.scrollLeft / previewContainer.clientWidth) + 1;
+                    previewIndicator.textContent = `${index} / ${images.length}`;
+                }
+
+                setTimeout(() => {
+                    previewContainer.scrollLeft = previewContainer.clientWidth * currentIndex;
+                    updateIndicator();
+                }, 50);
+
+                previewContainer.onscroll = updateIndicator;
+                imagePreviewOverlay.classList.add('active');
+            };
+
+            window.closeImagePreview = function() {
+                imagePreviewOverlay.classList.remove('active');
+                previewContainer.innerHTML = '';
+                previewContainer.scrollLeft = 0;
+                previewIndicator.textContent = '';
+            };
+
+            document.addEventListener('contextmenu', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.preventDefault();
+                }
+            });
+
+            // ================= 通用与时间计算 =================
+            let currentUploadTargetId = null;
+            let currentUploadStorageKey = null;
+            let currentPostIndex = -1;
+            let currentImageIndex = -1;
+            let currentEditingPostId = null;
+            let currentEditingIndex = null;
+            const SECRET_KEY = 'Baihe';  // 修改密钥
+
+            function formatTimeAgo(timestamp) {
+                const diff = Date.now() - timestamp;
+                const minutes = Math.floor(diff / 60000);
+                if (minutes < 1) return '刚刚';
+                if (minutes < 60) return `${minutes}分钟前`;
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return `${hours}小时前`;
+                const days = Math.floor(hours / 24);
+                return `${days}天前`;
+            }
+
+            function syncUsername(newName) {
+                document.querySelectorAll('.sync-username').forEach(el => {
+                    el.textContent = '@' + newName;
+                });
+                localStorage.setItem('amber_username_sync', newName);
+                document.title = newName + "'s Starry Sky";
+            }
+
+            // ================= 图片压缩 =================
+            function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = () => {
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > maxWidth || height > maxHeight) {
+                                if (width > height) {
+                                    if (width > maxWidth) {
+                                        height = Math.round(height * maxWidth / width);
+                                        width = maxWidth;
+                                    }
+                                } else {
+                                    if (height > maxHeight) {
+                                        width = Math.round(width * maxHeight / height);
+                                        height = maxHeight;
+                                    }
+                                }
+                            }
+
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const base64 = canvas.toDataURL('image/jpeg', quality);
+                            resolve(base64);
+                        };
+                        img.onerror = reject;
+                    };
+                    reader.onerror = reject;
+                });
+            }
+
+            // ================= 帖子数据与渲染 =================
+            function getFeedsData(postId) {
+                const data = localStorage.getItem('amber_feeds_' + postId);
+                return data ? JSON.parse(data) : null;
+            }
+            function saveFeedsData(postId, dataArray) {
+                try {
+                    localStorage.setItem('amber_feeds_' + postId, JSON.stringify(dataArray));
+                    afterSave();
+                } catch(e) {
+                    alert('图片总量过大，无法保存到本地。请精简一些图片。');
+                }
+            }
+
+            // 迁移标记，避免默认数据反复覆盖
+            function ensureDefaultData(postId, defaultData) {
+                let feedsData = getFeedsData(postId);
+                if (feedsData) {
+                    feedsData.forEach(item => {
+                        if (!item.type) item.type = 'text-img';
+                        if (item.img && !Array.isArray(item.img)) item.img = [item.img];
+                        if (!item.img) item.img = [];
+                        if (!item.timestamp) item.timestamp = Date.now();
+                        if (item.pinned === undefined) item.pinned = false;
+                    });
+                    return feedsData;
+                }
+
+                if (postId === 'feed-post-1') {
+                    const migratedFlag = localStorage.getItem('amber_migrated_feed1');
+                    if (migratedFlag) {
+                        saveFeedsData(postId, []);
+                        return [];
+                    }
+                    const oldText1 = localStorage.getItem('amber_text_post-1');
+                    const oldText2 = localStorage.getItem('amber_text_post-2');
+                    const oldImg1 = localStorage.getItem('amber_img_post-1');
+
+                    const migrated = [
+                        { type: 'text-img', text: oldText1 || '我拍下这张照片的时候，你还在我身边。现在照片还在，你走了。原来有些画面，从一开始就是用来怀念的。🖤', img: oldImg1 ? [oldImg1] : [], timestamp: Date.now() - 1000 * 60 * 60, pinned: false },
+                        { type: 'text-img', text: oldText2 || '你走之后，我学会了在凌晨三点给自己煮面，加两个荷包蛋，一个给你留着，凉了再倒掉。这个习惯，我改了很久都没改掉。', img: [], timestamp: Date.now() - 1000 * 60 * 60 * 24, pinned: false }
+                    ];
+                    saveFeedsData(postId, migrated);
+                    localStorage.setItem('amber_migrated_feed1', '1');
+                    return migrated;
+                }
+
+                feedsData = defaultData || [];
+                feedsData.forEach(item => {
+                    if (!item.img) item.img = [];
+                    if (!item.timestamp) item.timestamp = Date.now();
+                    if (item.pinned === undefined) item.pinned = false;
+                });
+                saveFeedsData(postId, feedsData);
+                return feedsData;
+            }
+
+            function updatePostCount() {
+                const dailyPosts = getFeedsData('feed-post-1') || [];
+                const countEl = document.getElementById('statPosts');
+                if (countEl) {
+                    countEl.textContent = dailyPosts.length;
+                }
+            }
+
+            function renderFeeds(postId, containerId, defaultData) {
+                const container = document.getElementById(containerId);
+                if(!container) return;
+
+                let feedsData = ensureDefaultData(postId, defaultData);
+                const currentUsername = document.getElementById('usernameDisplay').innerText || 'amber_starry';
+                const mainAvatarSrc = document.getElementById('mainAvatarImg').src;
+
+                feedsData.sort((a, b) => {
+                    if (a.pinned && !b.pinned) return -1;
+                    if (!a.pinned && b.pinned) return 1;
+                    return 0;
+                });
+
+                container.innerHTML = '';
+
+                feedsData.forEach((item, index) => {
+                    const feedItem = document.createElement('div');
+                    feedItem.className = 'feed-item';
+                    if (item.pinned) feedItem.classList.add('pinned');
+
+                    const pinnedBadge = document.createElement('div');
+                    pinnedBadge.className = 'pinned-badge';
+                    pinnedBadge.innerHTML = '<i class="fas fa-thumbtack"></i> 置顶';
+                    feedItem.appendChild(pinnedBadge);
+
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'feed-header';
+
+                    const avatarDiv = document.createElement('div');
+                    avatarDiv.className = 'feed-avatar';
+                    if (mainAvatarSrc) {
+                        avatarDiv.classList.add('has-img');
+                        avatarDiv.innerHTML = `<img src="${mainAvatarSrc}" alt="">`;
+                    }
+                    headerDiv.appendChild(avatarDiv);
+
+                    const metaDiv = document.createElement('div');
+                    metaDiv.className = 'feed-meta';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'feed-name';
+                    nameSpan.innerText = '琥珀';
+                    metaDiv.appendChild(nameSpan);
+
+                    const usernameSpan = document.createElement('span');
+                    usernameSpan.className = 'feed-username sync-username';
+                    usernameSpan.innerText = '@' + currentUsername;
+                    metaDiv.appendChild(usernameSpan);
+
+                    headerDiv.appendChild(metaDiv);
+
+                    const timeSpan = document.createElement('span');
+                    timeSpan.className = 'feed-time';
+                    timeSpan.innerText = '· ' + formatTimeAgo(item.timestamp || Date.now());
+                    headerDiv.appendChild(timeSpan);
+
+                    feedItem.appendChild(headerDiv);
+
+                    if (item.type === 'text-img' || item.type === 'text') {
+                        const textWrapper = document.createElement('div');
+                        textWrapper.className = 'feed-text-wrapper';
+
+                        const textDiv = document.createElement('div');
+                        textDiv.className = 'feed-text';
+                        textDiv.setAttribute('contenteditable', 'false');
+                        textDiv.dataset.postid = postId;
+                        textDiv.dataset.index = index;
+                        textDiv.innerHTML = linkify(item.text || '在这里输入文案...');
+
+                        textWrapper.appendChild(textDiv);
+
+                        const editBtn = document.createElement('div');
+                        editBtn.className = 'feed-text-edit-btn';
+                        editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                        editBtn.title = '点击修改文字';
+                        editBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            if (!document.body.classList.contains('edit-mode')) return;
+                            currentEditingPostId = postId;
+                            currentEditingIndex = index;
+                            document.getElementById('textEditArea').value = item.text || '';
+                            document.getElementById('textEditOverlay').classList.add('active');
+                        };
+                        textWrapper.appendChild(editBtn);
+
+                        feedItem.appendChild(textWrapper);
+                    }
+
+                    if (item.type !== 'text') {
+                        const imgCount = item.img ? item.img.length : 0;
+
+                        if (imgCount > 0 || document.body.classList.contains('edit-mode')) {
+                            const gridDiv = document.createElement('div');
+                            gridDiv.className = 'feed-image-grid';
+                            gridDiv.dataset.count = Math.max(1, imgCount);
+
+                            if (item.img) {
+                                item.img.forEach((imgSrc, imgIdx) => {
+                                    const imgItem = document.createElement('div');
+                                    imgItem.className = 'grid-image-item';
+                                    if (imgCount === 1) {
+                                        imgItem.classList.add('single');
+                                    }
+
+                                    const img = document.createElement('img');
+                                    img.src = imgSrc;
+                                    imgItem.appendChild(img);
+
+                                    imgItem.onclick = (e) => {
+                                        e.stopPropagation();
+                                        window.openImagePreview(item.img, imgIdx);
+                                    };
+
+                                    if (imgCount === 1) {
+                                        const hint = document.createElement('div');
+                                        hint.className = 'swipe-hint';
+                                        hint.innerHTML = '<i class="fas fa-chevron-down"></i> 滑动查看完整图片';
+                                        imgItem.appendChild(hint);
+
+                                        img.onload = function() {
+                                            if (this.parentElement.scrollHeight > 400) {
+                                                this.parentElement.classList.add('show-hint');
+                                                this.parentElement.addEventListener('scroll', function() {
+                                                    if (this.scrollTop + this.clientHeight >= this.scrollHeight - 10) {
+                                                        hint.style.opacity = '0';
+                                                    } else {
+                                                        hint.style.opacity = '1';
+                                                    }
+                                                });
+                                            } else {
+                                                hint.style.display = 'none';
+                                            }
+                                        };
+                                    }
+
+                                    const overlay = document.createElement('div');
+                                    overlay.className = 'img-edit-overlay';
+                                    overlay.innerHTML = '<i class="fas fa-image"></i>';
+                                    overlay.onclick = (e) => {
+                                        e.stopPropagation();
+                                        if(!document.body.classList.contains('edit-mode')) return;
+                                        currentUploadTargetId = postId;
+                                        currentUploadStorageKey = 'feed-img';
+                                        currentPostIndex = index;
+                                        currentImageIndex = imgIdx;
+                                        document.getElementById('globalImgInput').click();
+                                    };
+                                    imgItem.appendChild(overlay);
+
+                                    const delImgBtn = document.createElement('div');
+                                    delImgBtn.className = 'img-delete-btn';
+                                    delImgBtn.innerHTML = '<i class="fas fa-times"></i>';
+                                    delImgBtn.onclick = (e) => {
+                                        e.stopPropagation();
+                                        if(!document.body.classList.contains('edit-mode')) return;
+
+                                        if (confirm('确定要删除这张图片吗？')) {
+                                            feedsData[index].img.splice(imgIdx, 1);
+                                            saveFeedsData(postId, feedsData);
+                                            renderFeeds(postId, containerId);
+                                            if (postId === 'feed-post-1') updatePostCount();
+                                        }
+                                    };
+                                    imgItem.appendChild(delImgBtn);
+
+                                    gridDiv.appendChild(imgItem);
+                                });
+                            }
+
+                            if (document.body.classList.contains('edit-mode') && imgCount < 3) {
+                                const addBtn = document.createElement('div');
+                                addBtn.className = 'grid-add-btn';
+                                addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+                                addBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    currentUploadTargetId = postId;
+                                    currentUploadStorageKey = 'feed-img';
+                                    currentPostIndex = index;
+                                    currentImageIndex = -1;
+                                    document.getElementById('globalImgInput').click();
+                                };
+                                gridDiv.appendChild(addBtn);
+                            }
+
+                            feedItem.appendChild(gridDiv);
+                        }
+                    }
+
+                    const actionsRow = document.createElement('div');
+                    actionsRow.className = 'feed-actions-row';
+
+                    const pinBtn = document.createElement('div');
+                    pinBtn.className = 'action-btn ' + (item.pinned ? 'unpin-btn' : 'pin-btn');
+                    pinBtn.innerHTML = item.pinned ? '<i class="fas fa-thumbtack"></i> 取消置顶' : '<i class="fas fa-thumbtack"></i> 置顶';
+                    pinBtn.onclick = () => {
+                        if (!document.body.classList.contains('edit-mode')) return;
+                        feedsData.forEach((f, i) => { if (i !== index) f.pinned = false; });
+                        feedsData[index].pinned = !feedsData[index].pinned;
+                        saveFeedsData(postId, feedsData);
+                        renderFeeds(postId, containerId);
+                    };
+
+                    const deleteFeedBtn = document.createElement('div');
+                    deleteFeedBtn.className = 'action-btn delete-btn';
+                    deleteFeedBtn.innerHTML = '<i class="fas fa-trash"></i> 删除帖子';
+                    deleteFeedBtn.onclick = () => {
+                        if (!document.body.classList.contains('edit-mode')) return;
+                        if (confirm('确定要删除这组图文吗？删除后不可恢复。')) {
+                            feedsData.splice(index, 1);
+                            saveFeedsData(postId, feedsData);
+                            renderFeeds(postId, containerId);
+                            if (postId === 'feed-post-1') updatePostCount();
+                        }
+                    };
+
+                    if (feedsData.length > 1) {
+                        actionsRow.appendChild(pinBtn);
+                        actionsRow.appendChild(deleteFeedBtn);
+                        feedItem.appendChild(actionsRow);
+                    } else {
+                        const singleActionsRow = document.createElement('div');
+                        singleActionsRow.className = 'feed-actions-row';
+                        singleActionsRow.appendChild(pinBtn);
+                        feedItem.appendChild(singleActionsRow);
+                    }
+
+                    container.appendChild(feedItem);
+                });
+
+                const addActions = document.createElement('div');
+                addActions.className = 'add-actions';
+
+                const addTextImgBtn = document.createElement('div');
+                addTextImgBtn.className = 'add-new-feed-btn';
+                addTextImgBtn.innerHTML = '<i class="fas fa-edit"></i> 图文';
+                addTextImgBtn.onclick = () => {
+                    if(!document.body.classList.contains('edit-mode')) return;
+                    feedsData.push({ type: 'text-img', text: '新的文案...', img: [], timestamp: Date.now(), pinned: false });
+                    saveFeedsData(postId, feedsData);
+                    renderFeeds(postId, containerId);
+                    if (postId === 'feed-post-1') updatePostCount();
+                };
+                addActions.appendChild(addTextImgBtn);
+
+                const addImgOnlyBtn = document.createElement('div');
+                addImgOnlyBtn.className = 'add-new-feed-btn';
+                addImgOnlyBtn.innerHTML = '<i class="fas fa-image"></i> 图片';
+                addImgOnlyBtn.onclick = () => {
+                    if(!document.body.classList.contains('edit-mode')) return;
+                    feedsData.push({ type: 'img', text: '', img: [], timestamp: Date.now(), pinned: false });
+                    saveFeedsData(postId, feedsData);
+                    renderFeeds(postId, containerId);
+                    if (postId === 'feed-post-1') updatePostCount();
+                };
+                addActions.appendChild(addImgOnlyBtn);
+
+                const addTextOnlyBtn = document.createElement('div');
+                addTextOnlyBtn.className = 'add-new-feed-btn';
+                addTextOnlyBtn.innerHTML = '<i class="fas fa-font"></i> 文字';
+                addTextOnlyBtn.onclick = () => {
+                    if(!document.body.classList.contains('edit-mode')) return;
+                    feedsData.push({ type: 'text', text: '新的文字...', img: [], timestamp: Date.now(), pinned: false });
+                    saveFeedsData(postId, feedsData);
+                    renderFeeds(postId, containerId);
+                    if (postId === 'feed-post-1') updatePostCount();
+                };
+                addActions.appendChild(addTextOnlyBtn);
+
+                container.appendChild(addActions);
+            }
+
+            function initAllFeeds() {
+                renderFeeds('feed-post-1', 'feed-post-1');
+                updatePostCount();
+
+                const defaultDataMap = {
+                    'feed-post-3': [
+                        { type: 'text-img', text: '收录了一些空洞的几何轨迹。', img: [], timestamp: Date.now() - 1000 * 60 * 60 * 2, pinned: false },
+                        { type: 'text-img', text: '就像我们在彼此世界留下过的交集。', img: [], timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3, pinned: false }
+                    ],
+                    'feed-post-4': [
+                        { type: 'text-img', text: '“你问我还爱不爱你，我说不爱了。”', img: [], timestamp: Date.now() - 1000 * 60 * 60 * 5, pinned: false }
+                    ],
+                    'feed-post-5': [
+                        { type: 'text-img', text: '“我没有在等你，我只是暂时还没办法喜欢上别人。”', img: [], timestamp: Date.now() - 1000 * 60 * 60 * 12, pinned: false }
+                    ],
+                    'feed-post-6': [
+                        { type: 'text-img', text: '感谢「星海旅团」为本频道提供的独家冠名支持。', img: [], timestamp: Date.now() - 1000 * 60 * 60 * 24, pinned: false }
+                    ]
+                };
+
+                renderFeeds('feed-post-3', 'feed-post-3', defaultDataMap['feed-post-3']);
+                renderFeeds('feed-post-4', 'feed-post-4', defaultDataMap['feed-post-4']);
+                renderFeeds('feed-post-5', 'feed-post-5', defaultDataMap['feed-post-5']);
+                renderFeeds('feed-post-6', 'feed-post-6', defaultDataMap['feed-post-6']);
+            }
+
+            // ================= 须知板块逻辑 =================
+            function getAccordionData() {
+                const data = localStorage.getItem('amber_accordion');
+                return data ? JSON.parse(data) : [
+                    { id: 1, title: '互动指南与边界感', content: '欢迎来到琥珀的星空。私信前请先看主页简介，不接急单，不聊无关话题。感谢理解与尊重。<br><br>· 仅接受过良好沟通的约稿或合作。<br>· 不回答在主页中已经明确写出的问题。<br>· 互相尊重，保持舒适的距离。<br><br>（当您输入的内容超过此高度时，这里会自动出现滚动条。）' },
+                    { id: 2, title: '营业时间与回复频率', content: '通常在深夜出没，白天可能在补觉或者发呆。消息回复较慢，但看到一定会回。<br><br>· 核心活跃时间：23:00 - 03:00<br>· 周末偶尔会长时间离线。<br>· 请勿频繁催促。' }
+                ];
+            }
+            function saveAccordionData(dataArray) {
+                localStorage.setItem('amber_accordion', JSON.stringify(dataArray));
+                afterSave();
+            }
+
+            function renderAccordion() {
+                const container = document.getElementById('accordionContainer');
+                if(!container) return;
+
+                let data = getAccordionData();
+                container.innerHTML = '';
+
+                data.forEach((item, index) => {
+                    const accItem = document.createElement('div');
+                    accItem.className = 'accordion-item';
+
+                    const header = document.createElement('div');
+                    header.className = 'accordion-header';
+                    header.onclick = (e) => {
+                        if (e.target.closest('.accordion-actions')) return;
+                        accItem.classList.toggle('active');
+                    };
+
+                    const icon = document.createElement('div');
+                    icon.className = 'accordion-icon';
+                    icon.innerHTML = '<i class="fas fa-book-open"></i>';
+                    header.appendChild(icon);
+
+                    const title = document.createElement('div');
+                    title.className = 'accordion-title';
+                    title.setAttribute('contenteditable', 'false');
+                    title.innerText = item.title;
+
+                    const titleHint = document.createElement('i');
+                    titleHint.className = 'fas fa-pen acc-hint-icon';
+                    title.appendChild(titleHint);
+
+                    title.addEventListener('blur', function() {
+                        if (!document.body.classList.contains('edit-mode')) return;
+                        let newData = getAccordionData();
+                        const newTitle = this.innerText.trim();
+                        if (newTitle) {
+                            newData[index].title = newTitle;
+                            saveAccordionData(newData);
+                            renderAccordion();
+                        }
+                    });
+                    header.appendChild(title);
+
+                    const arrow = document.createElement('i');
+                    arrow.className = 'fas fa-chevron-down accordion-arrow';
+                    header.appendChild(arrow);
+
+                    accItem.appendChild(header);
+
+                    const body = document.createElement('div');
+                    body.className = 'accordion-body';
+
+                    const desc = document.createElement('div');
+                    desc.className = 'accordion-desc';
+                    desc.setAttribute('contenteditable', 'false');
+                    desc.innerHTML = linkify(item.content);
+
+                    const descHint = document.createElement('div');
+                    descHint.className = 'acc-desc-hint';
+                    descHint.innerHTML = '<i class="fas fa-pen"></i> 点击修改';
+                    desc.appendChild(descHint);
+
+                    desc.addEventListener('blur', function() {
+                        if (!document.body.classList.contains('edit-mode')) return;
+                        let newData = getAccordionData();
+                        newData[index].content = this.innerHTML;
+                        saveAccordionData(newData);
+                    });
+                    body.appendChild(desc);
+                    accItem.appendChild(body);
+
+                    container.appendChild(accItem);
+                });
+            }
+
+            window.openAddAccordionModal = function() {
+                if(!document.body.classList.contains('edit-mode')) return;
+                document.getElementById('newAccTitle').value = '';
+                document.getElementById('newAccContent').value = '';
+                document.getElementById('addAccOverlay').classList.add('active');
+            };
+
+            window.saveNewAccordion = function() {
+                const title = document.getElementById('newAccTitle').value.trim();
+                const content = document.getElementById('newAccContent').value.trim();
+                if (!title) { alert('请输入标题'); return; }
+
+                let data = getAccordionData();
+                data.push({ id: Date.now(), title: title, content: content || '暂无内容' });
+                saveAccordionData(data);
+                renderAccordion();
+
+                document.getElementById('addAccOverlay').classList.remove('active');
+            };
+
+            // ================= 初始化加载与模式切换 =================
+            function loadSavedData() {
+                const nameEl = document.getElementById('editName');
+                const nameSaved = localStorage.getItem('amber_name');
+                if (nameSaved) {
+                    nameEl.innerHTML = nameSaved + ' <i class="fas fa-certificate" style="color:var(--c-primary)"></i>';
+                }
+
+                const bioEl = document.getElementById('editBio');
+                const bioSaved = localStorage.getItem('amber_bio');
+                if (bioSaved) {
+                    bioEl.innerHTML = bioSaved;
+                }
+
+                const signatureEl = document.getElementById('editSignature');
+                const signatureSaved = localStorage.getItem('amber_signature');
+                if (signatureSaved) {
+                    signatureEl.innerText = signatureSaved;
+                }
+
+                const joinEl = document.getElementById('editJoinDate');
+                const joinSaved = localStorage.getItem('amber_join');
+                if (joinSaved) {
+                    joinEl.innerHTML = joinSaved;
+                }
+
+                const savedFollowing = localStorage.getItem('amber_following');
+                if (savedFollowing) {
+                    document.getElementById('statFollowing').textContent = savedFollowing;
+                }
+                const savedFollowers = localStorage.getItem('amber_followers');
+                if (savedFollowers) {
+                    document.getElementById('statFollowers').textContent = savedFollowers;
+                }
+
+                const usernameSaved = localStorage.getItem('amber_username_sync');
+                if (usernameSaved) {
+                    document.getElementById('usernameDisplay').textContent = usernameSaved;
+                    syncUsername(usernameSaved);
+                } else {
+                    const defaultName = document.getElementById('usernameDisplay').textContent;
+                    syncUsername(defaultName);
+                }
+
+                const savedCover = localStorage.getItem('amber_cover_bg');
+                if (savedCover) {
+                    document.getElementById('profileCover').style.backgroundImage = `url(${savedCover})`;
+                }
+
+                const savedAvatar = localStorage.getItem('amber_main_avatar');
+                if (savedAvatar) {
+                    const mainAvImg = document.getElementById('mainAvatarImg');
+                    mainAvImg.src = savedAvatar;
+                    document.getElementById('mainAvatar').classList.add('has-img');
+                }
+
+                initAllFeeds();
+                renderAccordion();
+            }
+
+            const modeToggle = document.getElementById('modeToggle');
+            const modeBtns = modeToggle.querySelectorAll('.mode-btn');
+            const body = document.body;
+            const pwdOverlay = document.getElementById('pwdOverlay');
+            const pwdInput = document.getElementById('pwdInput');
+            const pwdError = document.getElementById('pwdError');
+
+            function setMode(mode) {
+                if (mode === 'edit') {
+                    body.classList.add('edit-mode');
+                    // 确保所有需要编辑的元素都启用 contenteditable
+                    document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'true'));
+                    document.querySelectorAll('.feed-text').forEach(el => el.setAttribute('contenteditable', 'true'));
+                    document.querySelectorAll('.accordion-title, .accordion-desc').forEach(el => el.setAttribute('contenteditable', 'true'));
+                } else {
+                    body.classList.remove('edit-mode');
+                    document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable', 'false'));
+                    document.querySelectorAll('.feed-text').forEach(el => el.setAttribute('contenteditable', 'false'));
+                    document.querySelectorAll('.accordion-title, .accordion-desc').forEach(el => el.setAttribute('contenteditable', 'false'));
+                }
+
+                initAllFeeds();
+                renderAccordion();
+
+                modeBtns.forEach(btn => {
+                    if (btn.dataset.mode === mode) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+            }
+
+            modeBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetMode = this.dataset.mode;
+                    if (this.classList.contains('active')) return;
+
+                    if (targetMode === 'edit' && !body.classList.contains('edit-mode')) {
+                        pwdOverlay.classList.add('active');
+                        pwdInput.value = '';
+                        pwdError.classList.remove('show');
+                        setTimeout(() => pwdInput.focus(), 100);
+                    } else if (targetMode === 'preview') {
+                        setMode('preview');
+                    }
+                });
+            });
+
+            document.getElementById('pwdConfirm').addEventListener('click', function() {
+                if (pwdInput.value === SECRET_KEY) {
+                    setMode('edit');
+                    pwdOverlay.classList.remove('active');
+                } else {
+                    pwdError.classList.add('show');
+                    pwdInput.value = '';
+                }
+            });
+            document.getElementById('pwdCancel').addEventListener('click', () => pwdOverlay.classList.remove('active'));
+            pwdInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('pwdConfirm').click(); });
+
+            window.saveTextOnlyEdit = function() {
+                const newText = document.getElementById('textEditArea').value;
+                if (currentEditingPostId !== null && currentEditingIndex !== null) {
+                    let feedsData = getFeedsData(currentEditingPostId);
+                    if(feedsData && feedsData[currentEditingIndex]) {
+                        feedsData[currentEditingIndex].text = newText;
+                        if (!newText.trim()) {
+                            feedsData[currentEditingIndex].type = 'img';
+                        } else if (feedsData[currentEditingIndex].type === 'img' && newText.trim()) {
+                            feedsData[currentEditingIndex].type = 'text-img';
+                        }
+                        saveFeedsData(currentEditingPostId, feedsData);
+                        renderFeeds(currentEditingPostId, currentEditingPostId);
+                    }
+                }
+                document.getElementById('textEditOverlay').classList.remove('active');
+            };
+
+            document.addEventListener('blur', function(e) {
+                const target = e.target;
+                if (target.hasAttribute('contenteditable') && target.getAttribute('contenteditable') === 'true') {
+
+                    if (target.id === 'editUsername') {
+                        const rawText = target.innerText.replace('@', '').trim();
+                        if (rawText === '') return;
+                        syncUsername(rawText);
+                        target.innerHTML = `<i class="fas fa-at"></i> <span id="usernameDisplay">${rawText}</span>`;
+                        initAllFeeds();
+                        afterSave();
+                        return;
+                    }
+
+                    if (target.id === 'editName') {
+                        const pureText = target.innerText.replace(/<i class="fas fa-certificate".*?<\/i>/, '').trim();
+                        localStorage.setItem('amber_name', pureText);
+                        target.innerHTML = pureText + ' <i class="fas fa-certificate" style="color:var(--c-primary)"></i>';
+                        afterSave();
+                        return;
+                    }
+
+                    if (target.id === 'editSignature') {
+                        localStorage.setItem('amber_signature', target.innerText);
+                        afterSave();
+                        return;
+                    }
+
+                    const bioBox = target.closest('#editBio');
+                    if (bioBox) {
+                        localStorage.setItem('amber_bio', bioBox.innerHTML);
+                        afterSave();
+                        return;
+                    }
+
+                    const joinBox = target.closest('#editJoinDate');
+                    if (joinBox) {
+                        localStorage.setItem('amber_join', joinBox.innerHTML);
+                        afterSave();
+                        return;
+                    }
+
+                    if (target.id === 'statFollowing') {
+                        localStorage.setItem('amber_following', target.innerText);
+                        afterSave();
+                        return;
+                    }
+
+                    if (target.id === 'statFollowers') {
+                        localStorage.setItem('amber_followers', target.innerText);
+                        afterSave();
+                        return;
+                    }
+
+                    if (target.classList.contains('feed-text')) {
+                        const postId = target.dataset.postid;
+                        const index = parseInt(target.dataset.index);
+                        let feedsData = getFeedsData(postId);
+                        if(feedsData && feedsData[index]) {
+                            const rawText = target.innerText;
+                            feedsData[index].text = rawText;
+                            if (!rawText.trim() && feedsData[index].type === 'text-img') {
+                                feedsData[index].type = 'img';
+                                saveFeedsData(postId, feedsData);
+                                renderFeeds(postId, postId);
+                                return;
+                            }
+                            saveFeedsData(postId, feedsData);
+                        }
+                        return;
+                    }
+                }
+            }, true);
+
+            const coverInput = document.getElementById('coverInput');
+            document.getElementById('triggerCoverUpload').addEventListener('click', () => {
+                if(body.classList.contains('edit-mode')) coverInput.click();
+            });
+            coverInput.addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const base64 = await compressImage(file);
+                    document.getElementById('profileCover').style.backgroundImage = `url(${base64})`;
+                    localStorage.setItem('amber_cover_bg', base64);
+                    afterSave();
+                } catch (error) {
+                    alert('图片处理失败');
+                }
+            });
+
+            const avatarInput = document.getElementById('avatarInput');
+            document.getElementById('triggerAvatarUpload').addEventListener('click', () => {
+                if(body.classList.contains('edit-mode')) avatarInput.click();
+            });
+            avatarInput.addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const base64 = await compressImage(file, 300, 300);
+                    const mainAvImg = document.getElementById('mainAvatarImg');
+                    mainAvImg.src = base64;
+                    document.getElementById('mainAvatar').classList.add('has-img');
+                    localStorage.setItem('amber_main_avatar', base64);
+                    initAllFeeds();
+                    afterSave();
+                } catch (error) {
+                    alert('图片处理失败');
+                }
+            });
+
+            const globalImgInput = document.getElementById('globalImgInput');
+
+            globalImgInput.addEventListener('change', async function(e) {
+                const files = e.target.files;
+                if (!files || files.length === 0 || !currentUploadTargetId) return;
+                if (currentPostIndex === -1) return;
+
+                const postId = currentUploadTargetId;
+                let feedsData = getFeedsData(postId);
+                if (!feedsData || !feedsData[currentPostIndex]) {
+                    this.value = '';
+                    return;
+                }
+
+                const fileList = Array.from(files);
+
+                if (currentImageIndex === -1) {
+                    const currentCount = feedsData[currentPostIndex].img ? feedsData[currentPostIndex].img.length : 0;
+                    const remaining = 3 - currentCount;
+
+                    if (remaining <= 0) {
+                        alert('单个帖子最多只能上传 3 张图片');
+                        this.value = '';
+                        return;
+                    }
+
+                    if (fileList.length > remaining) {
+                        alert(`当前最多还能上传 ${remaining} 张图片，超出部分已忽略。`);
+                    }
+
+                    const filesToAdd = fileList.slice(0, remaining);
+                    const loadedImages = [];
+
+                    for (let i = 0; i < filesToAdd.length; i++) {
+                        try {
+                            const base64 = await compressImage(filesToAdd[i]);
+                            loadedImages.push(base64);
+                        } catch (error) {
+                            console.error('压缩失败', error);
+                        }
+                    }
+
+                    if (loadedImages.length > 0) {
+                        feedsData[currentPostIndex].img = (feedsData[currentPostIndex].img || []).concat(loadedImages);
+                        saveFeedsData(postId, feedsData);
+                        renderFeeds(postId, postId);
+
+                        const newCount = feedsData[currentPostIndex].img.length;
+                        if (newCount >= 3) {
+                            alert(`已上传满 3 张图片，无法继续上传更多图片。`);
+                        } else {
+                            alert(`已成功上传 ${loadedImages.length} 张图片，当前共 ${newCount} 张。`);
+                        }
+                    }
+                } else {
+                    try {
+                        const base64 = await compressImage(files[0]);
+                        if (feedsData[currentPostIndex].img && feedsData[currentPostIndex].img[currentImageIndex] !== undefined) {
+                            feedsData[currentPostIndex].img[currentImageIndex] = base64;
+                            saveFeedsData(postId, feedsData);
+                            renderFeeds(postId, postId);
+                        }
+                    } catch (error) {
+                        alert('图片处理失败');
+                    }
+                }
+
+                this.value = '';
+            });
+
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById(this.dataset.tab).classList.add('active');
+                });
+            });
+
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                header.addEventListener('click', function() {
+                    this.parentElement.classList.toggle('active');
+                });
+            });
+
+            // ================= 启动 =================
+            (async function init() {
+                await loadSharedData();
+                loadSavedData();
+                setMode('preview');
+            })();
+        })();
+    </script>
+</body>
+</html>
